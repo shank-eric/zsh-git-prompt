@@ -40,6 +40,15 @@ function chpwd_update_git_vars() {
     update_current_git_vars
 }
 
+function git_stash_size(){
+  lines=$(git stash list -n 100 2> /dev/null) || return
+  if [ "${#lines}" -gt 0 ]
+  then
+    count=$(echo "$lines" | wc -l | sed 's/^[ \t]*//') # strip tabs
+    echo "${count#}"
+  fi
+}
+
 function update_current_git_vars() {
     unset __CURRENT_GIT_STATUS
 
@@ -58,13 +67,14 @@ function update_current_git_vars() {
 	GIT_CONFLICTS=$__CURRENT_GIT_STATUS[5]
 	GIT_CHANGED=$__CURRENT_GIT_STATUS[6]
 	GIT_UNTRACKED=$__CURRENT_GIT_STATUS[7]
+  GIT_STASHES=$(git_stash_size)
 }
 
 
 git_super_status() {
 	precmd_update_git_vars
-    if [ -n "$__CURRENT_GIT_STATUS" ]; then
-	  STATUS="$ZSH_THEME_GIT_PROMPT_PREFIX$ZSH_THEME_GIT_PROMPT_BRANCH$GIT_BRANCH%{${reset_color}%}"
+  if [ -n "$__CURRENT_GIT_STATUS" ]; then
+	  STATUS="$ZSH_THEME_GIT_PROMPT_PREFIX$ZSH_THEME_GIT_PROMPT_BRANCH$GIT_BRANCH$ZSH_THEME_GIT_BRANCH_SUFFIX%{${reset_color}%}"
 	  if [ "$GIT_BEHIND" -ne "0" ]; then
 		  STATUS="$STATUS$ZSH_THEME_GIT_PROMPT_BEHIND$GIT_BEHIND%{${reset_color}%}"
 	  fi
@@ -84,6 +94,9 @@ git_super_status() {
 	  if [ "$GIT_UNTRACKED" -ne "0" ]; then
 		  STATUS="$STATUS$ZSH_THEME_GIT_PROMPT_UNTRACKED%{${reset_color}%}"
 	  fi
+    if [ "$GIT_STASHES" -ne "0" ]; then
+	     STATUS="$STATUS$ZSH_THEME_GIT_PROMPT_STASHES$GIT_STASHES%{${reset_color}%}"
+    fi
 	  if [ "$GIT_CHANGED" -eq "0" ] && [ "$GIT_CONFLICTS" -eq "0" ] && [ "$GIT_STAGED" -eq "0" ] && [ "$GIT_UNTRACKED" -eq "0" ]; then
 		  STATUS="$STATUS$ZSH_THEME_GIT_PROMPT_CLEAN"
 	  fi
@@ -104,5 +117,4 @@ ZSH_THEME_GIT_PROMPT_BEHIND="%{↓%G%}"
 ZSH_THEME_GIT_PROMPT_AHEAD="%{↑%G%}"
 ZSH_THEME_GIT_PROMPT_UNTRACKED="%{…%G%}"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg_bold[green]%}%{✔%G%}"
-
-
+ZSH_THEME_GIT_PROMPT_STASHES="%{$fg[cyan]%}%{≠%G%}"
